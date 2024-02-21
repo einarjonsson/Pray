@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400..700&family=Noto+Sans+JP:wght@100..900&display=swap" rel="stylesheet">
+    <title>أوقات الصلاة</title>
+  <style>
+    body {
+      font-family: "El Messiri", sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      height: 100vh;
+      font-size: 35px;
+    }
+
+    .header {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      padding: 30px;
+    }
+
+    .prayer-time {
+      padding-right: 30px;
+      padding-bottom: 15px;
+      margin: 0px;
+      text-align: right;
+      width: 100%;
+      direction: rtl; /* Set text direction to right-to-left for Arabic */
+    }
+
+    /* Add this style block to your existing styles */
+    .highlight {
+      font-size: 70px;
+      color: #e8e542;
+    }
+
+    #ramadan-graphic {
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    #hijri-date {
+      display: flex;
+      justify-content: center;
+    }
+
+    #prayer-times {
+      display: flex;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="content">
+    <section class="header">
+      <div id="hijri-date"></div>
+      <div id="countdown"></div>
+    </section>
+
+    <div id="prayer-times">
+      <!-- Create the prayer time elements in HTML with specific IDs -->
+      <div id="Fajr" class="prayer-time">الفجر: </div>
+      <div id="Sunrise" class="prayer-time">الشروق: </div>
+      <div id="Dhuhr" class="prayer-time">الظهر: </div>
+      <div id="Asr" class="prayer-time">العصر: </div>
+      <div id="Maghrib" class="prayer-time">المغرب: </div>
+      <div id="Isha" class="prayer-time">العشاء: </div>
+    </div>
+
+    <section>
+      <div id="countdown"></div>
+    </section>
+  </div>
+
+  <div id="ramadan-graphic">
+    <img src="/Users/einar.jonsson/Library/Mobile Documents/iCloud~dk~simonbs~Scriptable/Documents/Prayer/Golden Cloud Texture.png" alt="Ramadan Graphic" width="400">
+  </div>  
+
+  <script>
+    async function fetchData() {
+      try {
+        const response = await fetch('http://api.aladhan.com/v1/timingsByCity?city=Lyon&country=France&method=4');
+        const data = await response.json();
+        displayPrayerTimes(data.data);
+        displayHijriDate(data.data.date.hijri);
+        displayCountdown(data.data.timings);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    }
+
+function displayHijriDate(hijriDate) {
+  const hijriElement = document.getElementById('hijri-date');
+  hijriElement.textContent = `${hijriDate.date}`;
+}
+
+function displayCountdown(prayerTimes) {
+  const currentTime = new Date();
+  const prayerTimesArray = Object.entries(prayerTimes);
+
+  const countdownElement = document.getElementById('countdown');
+  countdownElement.textContent = ''; // Reset countdown text
+
+  const prayerTimeElements = document.getElementsByClassName('prayer-time');
+  for (const element of prayerTimeElements) {
+    const [prayer, time] = element.textContent.split(': ');
+    const prayerTime = new Date(parseTime(time));
+
+    if (prayerTime > currentTime) {
+      // Highlight the next upcoming prayer and display countdown
+      const timeDiffNextPrayer = prayerTime - currentTime;
+      const countdownNextPrayer = Math.floor(timeDiffNextPrayer / (1000 * 60));
+      
+      // Add flashing effect when there are only 5 minutes left
+      if (countdownNextPrayer <= 5) {
+        countdownElement.style.color = Math.floor(Date.now() / 1000) % 2 === 0 ? 'red' : 'inherit';
+      } else {
+        countdownElement.style.color = 'inherit';
+      }
+
+
+
+      countdownElement.textContent = `الوقت حتى ${prayer}: ${countdownNextPrayer} دقيقة`;
+        element.classList.add('highlight');
+      break; // Stop iterating after finding the next upcoming prayer
+    } else {
+      // Remove highlight from previous prayer
+      element.classList.remove('highlight');
+    }
+  }
+}
+
+
+
+
+    // Function to parse time string into a valid date format
+    function parseTime(time) {
+      const [hours, minutes] = time.split(':');
+      const currentDate = new Date();
+      return new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hours, minutes);
+    }
+
+    function displayPrayerTimes(prayerTimes) {
+  // Specify the desired prayer times
+  const desiredPrayers = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+  // Update the content of the existing HTML elements
+  for (const prayer of desiredPrayers) {
+    const prayerTimeElement = document.getElementById(prayer);
+    const time = prayerTimes.timings[prayer];
+
+    if (prayerTimeElement) {
+      // Update only the prayer time, keeping the prayer name intact
+      const prayerName = prayerTimeElement.textContent.split(': ')[0];
+      prayerTimeElement.textContent = `${prayerName}: ${time}`;
+    }
+  }
+}
+
+    // Call fetchData initially and then every minute
+    fetchData();
+    setInterval(fetchData, 1000); // 60000 milliseconds = 1 minute
+  </script>
+</body>
+
+</html>
